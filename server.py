@@ -1,28 +1,38 @@
-import socket
+from flask import Flask, request, jsonify
+import requests
 
-# Tạo socket server
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+app = Flask(__name__)
 
-# Bind socket tới địa chỉ IP và port
-server_socket.bind(('localhost', 12345))
+# Giả sử có API của iBoard để lấy thông tin giá trị chứng khoán
+API_URL = 'https://iboard.ssi.com.vn/api/stockPrice/'
 
-# Lắng nghe kết nối
-server_socket.listen(1)
-print("Server đang lắng nghe...")
 
-# Chấp nhận kết nối từ client
-conn, addr = server_socket.accept()
-print(f"Kết nối từ: {addr}")
+@app.route('/getStockPrice', methods=['POST'])
+def get_stock_price():
+    data = request.get_json()
+    stock_code = data.get('stockCode')
 
-# Nhận dữ liệu từ client
-data = conn.recv(1024).decode()
-numbers = data.split()  # Chia dữ liệu nhận được thành các số
+    if not stock_code:
+        return jsonify({'error': 'Stock code is required'}), 400
 
-# Tính tổng 2 số
-result = int(numbers[0]) + int(numbers[1])
+    try:
+        # Thực hiện yêu cầu đến API của iBoard SSI
+        response = requests.get(f'{API_URL}{stock_code}')
 
-# Gửi kết quả về client
-conn.send(str(result).encode())
+        # Kiểm tra xem có nhận được dữ liệu từ API hay không
+        if response.status_code == 200:
+            stock_data = response.json()
 
-# Đóng kết nối
-conn.close()
+            # Trả về dữ liệu giá trị chứng khoán
+            return jsonify({
+                'stockCode': stock_code,
+                'price': stock_data.get('price')  # Giả sử trường giá trị là 'price'
+            })
+        else:
+            return jsonify({'error': 'Stock data not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+if __name__ == '__main__':
+    app.run(debug=True)

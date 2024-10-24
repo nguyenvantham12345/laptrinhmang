@@ -1,23 +1,18 @@
-import socket
+import requests
 
-# Tạo socket client
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+url = 'http://127.0.0.1:5000/getStockPrice'
 
-# Kết nối tới server
-client_socket.connect(('localhost', 12345))
+# Nhập mã chứng khoán bạn muốn gửi
+stock_code = input("Enter the stock code: ")
 
-# Nhập vào 2 số từ người dùng
-num1 = input("Nhập số thứ nhất: ")
-num2 = input("Nhập số thứ hai: ")
+# Gửi mã chứng khoán lên server
+data = {'stockCode': stock_code}
 
-# Gửi dữ liệu đến server
-client_socket.send(f"{num1} {num2}".encode())
+response = requests.post(url, json=data)
 
-# Nhận kết quả từ server
-result = client_socket.recv(1024).decode()
-
-# In ra kết quả
-print(f"Tổng của {num1} và {num2} là: {result}")
-
-# Đóng kết nối
-client_socket.close()
+# In ra giá trị nhận được từ server
+if response.status_code == 200:
+    stock_info = response.json()
+    print(f"Stock Code: {stock_info['stockCode']}, Price: {stock_info['price']}")
+else:
+    print(f"Error: {response.json().get('error')}")
